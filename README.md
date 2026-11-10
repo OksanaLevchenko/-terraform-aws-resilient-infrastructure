@@ -1,95 +1,77 @@
-# TerraformProject
+# Terraform AWS Resilient Infrastructure
 
-# Terraform / AWS Infrastructure Setup Deliverables:
+This project provisions a small AWS environment with Terraform and reusable modules. It focuses on repeatable infrastructure, controlled scaling, IAM access, networking, and S3 storage.
 
-## Create a Terraform repository that creates the following resources in AWS:
+## What it builds
 
-**Auto Scaling Group:**
-- Deploy an Auto Scaling Group using the standard AWS Linux AMI.
-- Ensure the ASG scales based on CPU utilization (For example, scale-out when CPU >
-70%, and scale-in when CPU < 30%).
-- Ensure the security group created for this project is attached to the instances
+The configuration creates:
 
-**IAM Policy and Role Creation:**
-- Create an IAM policy that grants read/write access to a specific S3 bucket.
-- Attach this policy to an IAM role.
-- Associate this IAM role with the EC2 instances in the ASG, allowing them to interact
-with the S3 bucket you will create.
+- a VPC and subnets
+- an EC2 Auto Scaling Group
+- CPU based scaling behavior
+- security groups for HTTP and HTTPS traffic
+- an IAM role and policy for S3 access
+- an S3 bucket with logging support
 
-**S3 Bucket:**
-- Create an S3 bucket with appropriate configuration (e.g., versioning, logging).
-Security Group:
-- Create a security group for the EC2 instances with rules to allow inbound and
-outbound traffic on ports 80 & 443.
+The root configuration is split into reusable Terraform modules so networking, compute, IAM, and storage can evolve independently.
 
-## Structure:
+## Why I built it
 
-### Reference for Auto Scaling Group
-(https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group#attribute-reference)
+I wanted a practical example of how I would structure AWS infrastructure in Terraform instead of creating resources manually. The goal was to make the environment repeatable, easier to review before deployment, and simple to extend.
 
-### Reference IAM Policy and Role Creation
-(https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy)
+## Project structure
 
-### Reference S3 Bucket 
-(https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket)
+```text
+.
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── modules/
+│   ├── vpc/
+│   ├── auto_scaling_group/
+│   ├── iam/
+│   └── s3_bucket/
+└── scripts/
+```
 
+## Deployment flow
 
-## Prerequisites:
+Initialize Terraform:
 
-* Terraform
-* AWS
+```bash
+terraform init
+```
 
-# Other Parameters
+Review the configuration:
 
-* **aws_region:** The AWS region in which the resources will be created (e.g., "us-east-1").
+```bash
+terraform fmt -check
+terraform validate
+terraform plan
+```
 
-* **ami_id**: The ID of the Amazon Machine Image (AMI) used to launch instances (e.g., "ami-0a3c3a20c09d6f377").
+Apply the infrastructure only after reviewing the plan:
 
-* **instance_type:** The type of EC2 instance to launch (e.g., "t3.micro").
+```bash
+terraform apply
+```
 
-* **asg_min_size:** The minimum number of instances in the Auto Scaling Group.
+Remove the environment when it is no longer needed:
 
-* **asg_max_size** The maximum number of instances in the Auto Scaling Group.
+```bash
+terraform destroy
+```
 
-* **asg_desired_capacity:** The desired number of instances in the Auto Scaling Group.
+## Configuration
 
-* **vpc_subnet_ids:** The IDs of the subnets in which the instances will be launched.
+The project uses variables for values such as AWS region, AMI ID, instance type, Auto Scaling Group capacity, bucket names, and environment specific settings.
 
-* **s3_bucket_name:** The name of the S3 bucket to be created.
+AWS credentials should be supplied through the normal AWS credential chain, for example an AWS CLI profile or short lived environment credentials. Credentials are not stored in the repository.
 
-* **log_bucket_name:** The name of the S3 bucket for logs.
+## Terraform state
 
-* **availability_zones:** The availability zones in which the instances will be launched.
+Terraform state is intentionally excluded from Git. In a production environment I would use a remote backend with locking and encryption instead of local state.
 
-* **vpc_zone_identifier:** The IDs of the VPC zones in which the instances will be launched.
+## Next improvements
 
-  ![<img width="670" alt="Screen Shot 2024-02-04 at 7 55 04 PM" src="https://github.com/OksanaLevchenko/TerraformProject/assets/114625801/77a91edb-1396-4ac6-b2af-50766d9c8556">]
-
-
-(https://registry.terraform.io/providers/hashicorp/aws/latest)
-
-## Deployment
-
-Exporting credentials in the best practices **aws configure**
-
-$ export access_key = ""
-
-$ export secret_key = ""
-
-Terraform init
-
-Terraform plan
-
-Teffarom apply
-
-When you consider having the first version of your infrastructure you can run the command `terraform init` and Terraform will create the initial plan to be applied when creating the infrastructure.
-
-With the plan in place you know which resources are going to be created, after confirming everything looks like what you were expecting you can run `terraform apply`. This will create the actual infrastructure.
-
-After having the infrastructure in place you will need to evolve it by adding new resources or updating any of the existing ones. After doing this, you can run `terraform refresh` and a new plan will be created. After validating the changes in the new plan you can run `terraform apply` again and the actual infrastructure will be updated.
-
-In the end, if you no longer need the infrastructure you can run `terraform destroy` and the actual infrastructure will be terminated.
-
-
-
-
+I would extend this project with remote state, CI validation, security scanning, and automated policy checks before apply.
